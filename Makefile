@@ -7,14 +7,14 @@
 SRC_PATH = lib
 INCLUDE_PATH = include
 
-GLOBAL_GCC_OPTS = -std=gnu99 -Wall -Wextra -pedantic
+GLOBAL_GCC_OPTS = -std=gnu99 -fno-builtin -nostdinc -Wall -Wextra -pedantic
 
 LIBC_OBJ = $(SRC_PATH)/string.o
 
 all: libc.a
 
 libc.a: $(LIBC_OBJ)
-	ar -a $@
+	ar -rcs $@ $+
 
 $(SRC_PATH)/%.o: $(SRC_PATH)/%.c
 	gcc -c -I$(INCLUDE_PATH) $(GLOBAL_GCC_OPTS) -o $@ $<
