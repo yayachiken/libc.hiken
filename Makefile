@@ -9,7 +9,8 @@ INCLUDE_PATH = include
 
 GLOBAL_GCC_OPTS = -std=gnu99 -fno-builtin -nostdinc -Wall -Wextra -pedantic
 
-LIBC_OBJ = $(SRC_PATH)/string.o
+include $(SRC_PATH)/string/make.inc
+include $(SRC_PATH)/stdio/make.inc
 
 all: libc.a
 
@@ -20,5 +21,5 @@ $(SRC_PATH)/%.o: $(SRC_PATH)/%.c
 	gcc -c -I$(INCLUDE_PATH) $(GLOBAL_GCC_OPTS) -o $@ $<
 
 clean:
-	rm -rf $(SRC_PATH)/*.o libc.a
+	rm -rf $(LIBC_OBJ) libc.a
 

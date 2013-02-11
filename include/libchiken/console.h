@@ -1,0 +1,7 @@
+#ifndef LIBCHIKEN_CONSOLE_H
+#define LIBCHIKEN_CONSOLE_H
+
+#define CONSOLE_WRITE(x)
+
+#endif
+
