@@ -7,7 +7,7 @@
 SRC_PATH = lib
 INCLUDE_PATH = include
 
-GLOBAL_GCC_OPTS = -std=gnu99 -fno-builtin -nostdinc -Wall -Wextra -pedantic
+GLOBAL_GCC_OPTS = -g -std=gnu99 -fno-builtin -nostdinc -Wall -Wextra -pedantic
 
 include $(SRC_PATH)/string/make.inc
 include $(SRC_PATH)/stdio/make.inc

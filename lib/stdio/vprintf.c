@@ -211,15 +211,25 @@ int process_char_argument(unsigned char arg, LengthModifier lm)
     return 1;
 }
 
-int process_string_argument(char *str, LengthModifier lm, int precision)
+int process_string_argument(char *str, PrintfFlags flags, int field_width,
+        LengthModifier lm, int precision)
 {
     int chars_printed;
     if(lm != 'l')
     {
-        for(int i=0; str[i] != '\0' && i < precision; i++)
+        // "Normal" right adjustment not implemented yet
+        for(int i=0; str[i] != '\0' && (i < precision || precision == 0); i++)
         {
             chars_printed++;
+            field_width--;
             CONSOLE_WRITE(str[i]);
+        }
+        if(flags & FLAG_LEFT_ADJUSTMENT)
+        {
+            for(;field_width > 0; field_width--)
+            {
+                CONSOLE_WRITE(' ');
+            }
         }
     }
     else
@@ -452,7 +462,7 @@ int vprintf(const char *format, va_list args)
                 case 's':
                     arg = (intmax_t) va_arg(args, char*);
                     chars_printed += process_string_argument((char*) arg,
-                            length_modifier, precision);
+                            flags, field_width, length_modifier, precision);
                     break;
                 case 'p':
                     arg = (intmax_t) va_arg(args, void*);
