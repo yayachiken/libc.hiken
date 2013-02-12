@@ -57,13 +57,23 @@ int parse_decimal_string(const char *str, const char **end)
     return ret;
 }
 
-int process_int_argument(intmax_t arg, char conversion_specifier,
+int process_int_argument(uintmax_t arg, char conversion_specifier,
         PrintfFlags flags, int field_width, int precision)
 {
     // TODO: Field width, precision
     size_t length = 0, prefix_length = 0;
     int base = 10;
     int chars_printed = 0;
+
+    // A bit hackish: Allows to process signed and unsigned types in a single
+    // function
+    int negative = 0;
+    if((conversion_specifier == 'd' || conversion_specifier == 'i')
+            && arg > INTMAX_MAX)
+    {
+        negative = 1;
+        arg = (~arg)+1;
+    }
 
     //
     // Determine which base to use for output based on the conversion specifier
@@ -86,13 +96,14 @@ int process_int_argument(intmax_t arg, char conversion_specifier,
     // Determine the length of the number
     //
     intmax_t value = arg;
-    while(value /= base)
+    while(value != 0)
     {
+        value /= base;
         length++;    
     }
 
     // The sign needs a character, too
-    if(flags & FLAG_ALWAYS_SIGNED || flags & FLAG_POSITIVE_BLANK || arg < 0)
+    if(flags & FLAG_ALWAYS_SIGNED || flags & FLAG_POSITIVE_BLANK || negative)
     {
         prefix_length += 1;
     }
@@ -117,7 +128,7 @@ int process_int_argument(intmax_t arg, char conversion_specifier,
     size_t position = 0;
 
     // Sign
-    if(arg < 0)
+    if(negative)
     {
         number_string[position++] = '-';
     }
@@ -149,22 +160,23 @@ int process_int_argument(intmax_t arg, char conversion_specifier,
     }
 
     // Write the number out
+    position = prefix_length + length - 1;
     while(arg != 0)
     {
         int digit = arg % base;
         if(digit < 10)
         {
-            number_string[position++] = digit + '0';
+            number_string[position--] = digit + '0';
         }
         else
         {
-            number_string[position++] = (digit - 10) + 'A';
+            number_string[position--] = (digit - 10) + 'A';
         }
         arg /= base;
     }
 
     // Add NUL
-    number_string[position] = '\0';
+    number_string[prefix_length + length] = '\0';
 
     //
     // Do padding and print
@@ -173,14 +185,14 @@ int process_int_argument(intmax_t arg, char conversion_specifier,
 
     if(! (flags & FLAG_LEFT_ADJUSTMENT))
     {
-        for(int i=0; i<(length+prefix_length)%8; i++)
+        for(int i=field_width; i > length+prefix_length; i--)
         {
             CONSOLE_WRITE(padding_character);
             chars_printed++;
         }
     }
 
-    for(int i=0; i<length+prefix_length; i++)
+    for(int i=0; i < length+prefix_length; i++)
     {
         CONSOLE_WRITE(number_string[i]);
         chars_printed++;
@@ -188,7 +200,7 @@ int process_int_argument(intmax_t arg, char conversion_specifier,
 
     if(flags & FLAG_LEFT_ADJUSTMENT)
     {
-        for(int i=0; i<(length+prefix_length)%8; i++)
+        for(int i=field_width; i > length+prefix_length; i--)
         {
             CONSOLE_WRITE(padding_character);
             chars_printed++;
@@ -241,7 +253,8 @@ int process_string_argument(char *str, PrintfFlags flags, int field_width,
 
 int process_pointer_argument(void *ptr)
 {
-    return process_int_argument((intmax_t)ptr, 'x', FLAG_ALTERNATE_FORM, 0, 0);
+    return process_int_argument((intmax_t)ptr, 'x', FLAG_ALTERNATE_FORM,
+            sizeof(void*), 0);
 }
 
 int vprintf(const char *format, va_list args)
@@ -409,6 +422,37 @@ int vprintf(const char *format, va_list args)
             {
                 case 'd':
                 case 'i':
+                    switch(length_modifier)
+                    {
+                        case LENGTH_CHAR:
+                            arg = (uintmax_t) va_arg(args, int);
+                            break;
+                        case LENGTH_SHORT:
+                            arg = (uintmax_t) va_arg(args, int);
+                            break;
+                        case LENGTH_LONG:
+                            arg = (uintmax_t) va_arg(args, long);
+                            break;
+                        case LENGTH_LONGLONG:
+                            arg = (uintmax_t) va_arg(args, long long);
+                            break;
+                        case LENGTH_INTMAX:
+                            arg = (uintmax_t) va_arg(args, intmax_t);
+                            break;
+                        case LENGTH_SIZE_T:
+                            arg = (uintmax_t) va_arg(args, size_t);
+                            break;
+                        case LENGTH_PTRDIFF_T:
+                            arg = (uintmax_t) va_arg(args, ptrdiff_t);
+                            break;
+                        default:
+                            arg = (uintmax_t) va_arg(args, int);
+                            break;
+                    }
+                    process_int_argument(arg, *format_iter, flags, field_width,
+                            precision);
+                    break;
+
                 case 'o':
                 case 'u':
                 case 'x':
@@ -416,19 +460,19 @@ int vprintf(const char *format, va_list args)
                     switch(length_modifier)
                     {
                         case LENGTH_CHAR:
-                            arg = va_arg(args, int);
+                            arg = va_arg(args, unsigned int);
                             break;
                         case LENGTH_SHORT:
-                            arg = va_arg(args, int);
+                            arg = va_arg(args, unsigned int);
                             break;
                         case LENGTH_LONG:
-                            arg = va_arg(args, long);
+                            arg = va_arg(args, unsigned long);
                             break;
                         case LENGTH_LONGLONG:
-                            arg = va_arg(args, long long);
+                            arg = va_arg(args, unsigned long long);
                             break;
                         case LENGTH_INTMAX:
-                            arg = va_arg(args, intmax_t);
+                            arg = va_arg(args, uintmax_t);
                             break;
                         case LENGTH_SIZE_T:
                             arg = va_arg(args, size_t);
@@ -437,11 +481,11 @@ int vprintf(const char *format, va_list args)
                             arg = (uintmax_t) va_arg(args, ptrdiff_t);
                             break;
                         default:
-                            arg = va_arg(args, int);
+                            arg = va_arg(args, unsigned int);
                             break;
                     }
-                    process_int_argument((intmax_t)arg, *format_iter,
-                            flags, field_width, precision);
+                    process_int_argument(arg, *format_iter, flags, field_width,
+                            precision);
                     break;
 
                 case 'e':
@@ -455,17 +499,17 @@ int vprintf(const char *format, va_list args)
                     // Not implemented
                     break;
                 case 'c':
-                    arg = va_arg(args, int);
+                    arg = (uintmax_t) va_arg(args, int);
                     chars_printed += process_char_argument((unsigned char) arg,
                             length_modifier);
                     break;
                 case 's':
-                    arg = (intmax_t) va_arg(args, char*);
+                    arg = (uintmax_t) va_arg(args, char*);
                     chars_printed += process_string_argument((char*) arg,
                             flags, field_width, length_modifier, precision);
                     break;
                 case 'p':
-                    arg = (intmax_t) va_arg(args, void*);
+                    arg = (uintmax_t) va_arg(args, void*);
                     chars_printed += process_pointer_argument((void*) arg);
                     break;
                 case 'n':
