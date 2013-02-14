@@ -4,10 +4,13 @@
 
 .PHONY: all clean
 
+PLATFORM = LIBCHIKEN_FOR_LINUX
+
 SRC_PATH = lib
 INCLUDE_PATH = include
 
-GLOBAL_GCC_OPTS = -g -std=gnu99 -fno-builtin -nostdinc -Wall -Wextra -pedantic
+GLOBAL_GCC_OPTS = -g -std=gnu99 -I$(INCLUDE_PATH) -D$(PLATFORM) -fno-builtin \
+				  -Wall -Wextra -pedantic
 
 include $(SRC_PATH)/string/make.inc
 include $(SRC_PATH)/stdio/make.inc
