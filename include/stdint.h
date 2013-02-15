@@ -14,7 +14,11 @@ typedef unsigned long long uint64_t;
 typedef int64_t intmax_t;
 typedef uint64_t uintmax_t;
 
+#ifndef __SIZE_T_DEFINED
+#define __SIZE_T_DEFINED
 typedef int size_t;
+#endif
+
 typedef void* ptrdiff_t;
 
 #define INTMAX_MAX 9223372036854775807LL
