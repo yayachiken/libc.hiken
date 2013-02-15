@@ -1,7 +1,7 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <libchiken/console.h>
 
 //
 // FLAGS
@@ -187,14 +187,14 @@ int process_int_argument(uintmax_t arg, char conversion_specifier,
     {
         for(int i=field_width; i > length+prefix_length; i--)
         {
-            CONSOLE_WRITE(padding_character);
+            write(1, &padding_character, 1);
             chars_printed++;
         }
     }
 
     for(int i=0; i < length+prefix_length; i++)
     {
-        CONSOLE_WRITE(number_string[i]);
+        write(1, number_string+i, 1);
         chars_printed++;
     }
 
@@ -202,7 +202,7 @@ int process_int_argument(uintmax_t arg, char conversion_specifier,
     {
         for(int i=field_width; i > length+prefix_length; i--)
         {
-            CONSOLE_WRITE(padding_character);
+            write(1, &padding_character, 1);
             chars_printed++;
         }
 
@@ -214,7 +214,7 @@ int process_char_argument(unsigned char arg, LengthModifier lm)
 {
     if(lm != 'l')
     {
-        CONSOLE_WRITE(arg);
+        write(1, &arg, 1);
     }
     else
     {
@@ -234,13 +234,13 @@ int process_string_argument(char *str, PrintfFlags flags, int field_width,
         {
             chars_printed++;
             field_width--;
-            CONSOLE_WRITE(str[i]);
+            write(1, str+i, 1);
         }
         if(flags & FLAG_LEFT_ADJUSTMENT)
         {
             for(;field_width > 0; field_width--)
             {
-                CONSOLE_WRITE(' ');
+                write(1, " ", 1);
             }
         }
     }
@@ -267,7 +267,7 @@ int vprintf(const char *format, va_list args)
         {
             // This is a verbatim character, print it
             chars_printed++;
-            CONSOLE_WRITE(*format_iter);
+            write(1, format_iter, 1);
         }
         else
         {
@@ -520,7 +520,7 @@ int vprintf(const char *format, va_list args)
                     break;
                 case '%':
                     chars_printed++;
-                    CONSOLE_WRITE('%');
+                    write(1, "%", 1);
                     break;
                 default:
                     return -1;
