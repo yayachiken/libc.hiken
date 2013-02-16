@@ -51,7 +51,7 @@ typedef struct
 
 #define TMP_MAX 255
 
-FILE *stdin, *stdout, *stderr;
+extern FILE *stdin, *stdout, *stderr;
 
 int printf(const char*, ...);
 int fprintf(FILE*, const char*, ...);

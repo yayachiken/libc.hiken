@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <printf_common.h>
 
 void vprintf_output(Output op, int *chars_printed, size_t size, char character)
