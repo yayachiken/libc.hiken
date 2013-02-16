@@ -26,6 +26,7 @@ typedef struct
 
 typedef struct
 {
+    int handle;
     fpos_t current_position;
     char *byte_buffer;
     int error_indicator;
@@ -53,7 +54,14 @@ typedef struct
 FILE *stdin, *stdout, *stderr;
 
 int printf(const char*, ...);
+int fprintf(FILE*, const char*, ...);
+int sprintf(char*, const char*, ...);
+int snprintf(char*, size_t, const char*, ...);
+
 int vprintf(const char*, va_list);
+int vfprintf(FILE*, const char*, va_list);
+int vsprintf(char*, const char*, va_list);
+int vsnprintf(char*, size_t, const char*, va_list);
 
 #endif
 
