@@ -1,11 +1,13 @@
 #ifndef LIBCHIKEN_MALLOC_COMMON_H
 #define LIBCHIKEN_MALLOC_COMMON_h
 
+#include <stddef.h>
+
 #define MALLOC_PAGE_SIZE 4096
 
 typedef struct
 {
-    int size;   // Chunk size in bytes
+    size_t size;   // Chunk size in bytes
     void *next; // The first chunk in the bin
 } MallocBin;
 

@@ -16,14 +16,15 @@ typedef uint64_t uintmax_t;
 
 #ifndef __SIZE_T_DEFINED
 #define __SIZE_T_DEFINED
-typedef int size_t;
+typedef unsigned int size_t;
 #endif
 
 typedef unsigned long uintptr_t;
+typedef long intptr_t;
 
-typedef int ptrdiff_t;
+typedef long ptrdiff_t;
 
-#define SIZE_MAX 4294967295
+#define SIZE_MAX 4294967295UL
 
 #define INTMAX_MAX 9223372036854775807LL
 #define INTMAX_MIN -9223372036854775807LL
