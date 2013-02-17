@@ -14,6 +14,7 @@ GLOBAL_GCC_OPTS = -g -std=gnu99 -I$(INCLUDE_PATH) -D$(PLATFORM) -fno-builtin \
 
 include $(SRC_PATH)/string/make.inc
 include $(SRC_PATH)/stdio/make.inc
+include $(SRC_PATH)/stdlib/make.inc
 
 all: libc.a
 
