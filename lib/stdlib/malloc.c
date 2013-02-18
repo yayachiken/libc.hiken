@@ -47,12 +47,13 @@ void *malloc(size_t size)
 
         // Initialize memory, we take about a page (we assume that 4 KiB pages
         // are used, if they aren't that large, it's just bad for space usage).
-        wilderness = (ChunkInfo*) sbrk(MALLOC_PAGE_SIZE);
-        if(wilderness == (void*)-1)
+        void *new_mem = sbrk(MALLOC_PAGE_SIZE);
+        if(new_mem == (void*)-1)
         {
             return NULL;
         }
-        current_brk = ((uintptr_t)wilderness) + MALLOC_PAGE_SIZE;
+        current_brk = ((uintptr_t)new_mem) + MALLOC_PAGE_SIZE;
+        wilderness = (ChunkInfo*) ((uintptr_t)new_mem) - sizeof(size_t);
 
         // Provide boundary tag info at the start.
         wilderness->prev_size = 0;
@@ -134,8 +135,8 @@ void *malloc(size_t size)
 
     // The chunk fits exactly, just mark it as used, remove it from the bin, and
     // return a pointer to the usable memory area.
-    if(designated_chunk->size == size || (
-       designated_chunk == wilderness && wilderness_size == size))
+    if(designated_chunk->size == size ||
+       (designated_chunk == wilderness && wilderness_size == size))
     {
         // if the chunk is the wilderness chunk, transform it into a regular
         // chunk by setting the proper size
@@ -170,12 +171,12 @@ void *malloc(size_t size)
                 return NULL;
             }
             current_brk = ((uintptr_t) new_mem) + MALLOC_PAGE_SIZE;
-            wilderness = (ChunkInfo*)(current_brk - sizeof(size_t));
+            wilderness = (ChunkInfo*)(new_mem - sizeof(size_t));
 
             // Maximum size and mark as unused
             wilderness->size = SIZE_MAX & ~((size_t)(0x1));
 
-            // Get the last chunk in the last chunk and insert the wilderness
+            // Get the last chunk in the last bin and insert the wilderness
             // behind it.
             ChunkInfo *last_chunk;
             for(last_chunk = bins[127].next;
@@ -208,8 +209,9 @@ void *malloc(size_t size)
         {
             // The last line makes sure that we will have some memory left, even
             // if the request coincidentally is aligned with the pages.
-            intptr_t request_size = size + size - (size % MALLOC_PAGE_SIZE) + 
-                !!(size % MALLOC_PAGE_SIZE == 0)*MALLOC_PAGE_SIZE;
+            intptr_t request_size = size + MALLOC_PAGE_SIZE -
+                (size % MALLOC_PAGE_SIZE) + 
+                (!!(size % MALLOC_PAGE_SIZE == 0))*MALLOC_PAGE_SIZE;
 
             // We use this pointer just to check the return value and to update
             // the static values.
