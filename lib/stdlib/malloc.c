@@ -23,11 +23,11 @@ void *malloc(size_t size)
     static uintptr_t current_brk;
 
     // Initialize bins
-    if(bins[2].size == 0)
+    if(bins[1].size == 0)
     {
         // The lower bins are of exact size and 8 bytes apart for double word
         // alignment.
-        for(int i=2; i <= 64; i++)
+        for(int i=1; i <= 64; i++)
         {
             bins[i].size = 8*i;
         }
@@ -53,7 +53,11 @@ void *malloc(size_t size)
             return NULL;
         }
         current_brk = ((uintptr_t)new_mem) + MALLOC_PAGE_SIZE;
-        wilderness = (ChunkInfo*) ((uintptr_t)new_mem) - sizeof(size_t);
+
+        // We don't shift the wilderness down by sizeof(size_t) the first time
+        // since then .prev_size would point before the heap, but it might be
+        // accessed later.
+        wilderness = (ChunkInfo*) new_mem;
 
         // Provide boundary tag info at the start.
         wilderness->prev_size = 0;
@@ -63,10 +67,10 @@ void *malloc(size_t size)
         wilderness->prev = NULL;
         wilderness->next = NULL;
 
-        // Apply boundary tag to the end and mark as unused.
-        ((ChunkInfo*)(((uintptr_t)wilderness)
-                + MALLOC_PAGE_SIZE - sizeof(size_t)))->prev_size
-            = (MALLOC_PAGE_SIZE - 2*sizeof(size_t)) & ~((size_t)(0x1));
+        // Save real length of the wilderness block at the end.
+        // This is not done with normal blocks, usually the end of the block
+        // is delimited by a copy of the .size info of the ChunkInfo
+        *((size_t*)current_brk - 1) = MALLOC_PAGE_SIZE - 2*sizeof(size_t);
 
         bins[127].next = wilderness;
     }
@@ -87,12 +91,12 @@ void *malloc(size_t size)
     // Linear search (best-fit) for the chunk
     // The search always finishes since the wilderness chunk was assigned the
     // highest possible size.
-    for(int i=2; i <= 127; i++)
+    for(int i=1; i <= 127; i++)
     {
         // Bin is too small.
         // Since MallocBin.size gives the minimum bin size, we need to check
         // the next higher bin as well.
-        if(bins[i].size < size && bins[i+1].size < size)
+        if(i != 127 && bins[i].size < size && bins[i+1].size < size)
         {
             continue;
         }
@@ -135,8 +139,8 @@ void *malloc(size_t size)
 
     // The chunk fits exactly, just mark it as used, remove it from the bin, and
     // return a pointer to the usable memory area.
-    if(designated_chunk->size == size ||
-       (designated_chunk == wilderness && wilderness_size == size))
+    if((designated_chunk == wilderness && wilderness_size == size) ||
+        designated_chunk->size == size)
     {
         // if the chunk is the wilderness chunk, transform it into a regular
         // chunk by setting the proper size
@@ -146,8 +150,8 @@ void *malloc(size_t size)
         }
 
         // Mark as used
-        *((size_t*)((uintptr_t)designated_chunk) + 2*sizeof(size_t) 
-                + designated_chunk->size)
+        *((size_t*)((uintptr_t)designated_chunk + 2*sizeof(size_t) 
+                + designated_chunk->size))
             |= 0x01;
 
         // Unlink
@@ -171,7 +175,7 @@ void *malloc(size_t size)
                 return NULL;
             }
             current_brk = ((uintptr_t) new_mem) + MALLOC_PAGE_SIZE;
-            wilderness = (ChunkInfo*)(new_mem - sizeof(size_t));
+            wilderness = (ChunkInfo*)((uintptr_t)new_mem - sizeof(size_t));
 
             // Maximum size and mark as unused
             wilderness->size = SIZE_MAX & ~((size_t)(0x1));
@@ -234,7 +238,7 @@ void *malloc(size_t size)
 
     // Initialize new chunk at the end of the currently allocated user memory.
     ChunkInfo *new_chunk = 
-        ((ChunkInfo*)((uintptr_t)designated_chunk) + 2*sizeof(size_t) + size);
+        (ChunkInfo*)((uintptr_t)designated_chunk + 2*sizeof(size_t) + size);
     
     // Initalize new chunk and mark it as unused.
     // The new chunk has the size of the designated chunk minus the user
@@ -255,7 +259,7 @@ void *malloc(size_t size)
 
     // Sort the new chunk into an appropriate bin.
     int designated_bin;
-    for(designated_bin=2; designated_bin<=127; designated_bin++)
+    for(designated_bin=1; designated_bin<=127; designated_bin++)
     {
         // The right bin is the largest bin which has a minimum size below
         // the allocated size.
@@ -267,29 +271,41 @@ void *malloc(size_t size)
     }
 
     // Now that we found the bin, please insert the new chunk.
-    for(ChunkInfo *curr = bins[designated_bin].next; curr; curr = curr->next)
-    {
-        // To insert, we must either have reached the end or found the place
-        // where the chunk belongs.
-        if(!curr->next || (curr->size <= new_chunk->size 
-            && curr->next->size >= new_chunk->size))
-        {
-            new_chunk->prev = curr;
-            new_chunk->next = curr->next;
-            curr->next->prev = designated_chunk;
-            curr->next = designated_chunk;
-            break;
-        }
-        // This special case can only happen if we are still at the start
-        // of the bin.
-        if(curr->size > new_chunk->size)
-        {
-            assert(curr->prev == NULL);
+    ChunkInfo *curr = bins[designated_bin].next;
 
-            new_chunk->prev = NULL;
-            new_chunk->next = curr;
-            curr->prev = new_chunk;
-            break;
+    // Bin is still empty
+    if(curr == NULL)
+    {
+        bins[designated_bin].next = new_chunk;
+        new_chunk->prev = NULL;
+        new_chunk->next = NULL;
+    }
+    else
+    {
+        for(; curr; curr = curr->next)
+        {
+            // To insert, we must either have reached the end or found the place
+            // where the chunk belongs.
+            if(curr->next && (curr->size <= new_chunk->size 
+                        && curr->next->size >= new_chunk->size))
+            {
+                new_chunk->prev = curr;
+                new_chunk->next = curr->next;
+                curr->next->prev = designated_chunk;
+                curr->next = designated_chunk;
+                break;
+            }
+            // This special case can only happen if we are still at the start
+            // of the bin.
+            if(curr->size > new_chunk->size)
+            {
+                assert(curr->prev == NULL);
+
+                new_chunk->prev = NULL;
+                new_chunk->next = curr;
+                curr->prev = new_chunk;
+                break;
+            }
         }
     }
 
