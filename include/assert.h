@@ -13,7 +13,7 @@
 #define STR(x) #x
 #define assert(cond) \
     do { \
-        if(cond) { \
+        if(!(cond)) { \
             printf("Assertion " #cond " failed at " \
                 __FILE__ ":" XSTR(__LINE__) "\n"); \
             _exit(1); \
