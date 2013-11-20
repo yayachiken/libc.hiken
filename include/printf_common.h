@@ -44,12 +44,12 @@ typedef struct
     
     char *buf;
     size_t size;
-    int *chars_printed;
+    size_t *chars_printed;
 
     Output op;
     OutputFlag of;
 
-    void (*output)(Output, int*, size_t, char);
+    void (*output)(Output, size_t *, size_t, char);
 
 } PrintfInfo;
 
@@ -60,7 +60,7 @@ typedef struct
     ((x) >= '0' && (x) <= '9')
 
 int printf_common(Output, const char*, va_list,
-        void(*)(Output, int*, size_t, char), size_t);
+        void(*)(Output, size_t *, size_t, char), size_t);
 
 #endif
 

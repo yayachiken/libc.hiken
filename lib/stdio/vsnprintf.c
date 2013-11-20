@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <printf_common.h>
 
-void snprintf_output(Output op, int *chars_printed, size_t size, char character)
+void snprintf_output(Output op, size_t *chars_printed, size_t size, char character)
 {
     if(*chars_printed > size)
     {

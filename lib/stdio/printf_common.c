@@ -160,14 +160,14 @@ void process_int_argument(uintmax_t arg, PrintfInfo info)
 
     if(! (info.flags & FLAG_LEFT_ADJUSTMENT))
     {
-        for(int i=info.field_width; i > length+prefix_length; i--)
+        for(size_t i=info.field_width; i > length+prefix_length; i--)
         {
             info.output(info.op, info.chars_printed, info.size,
                     padding_character);
         }
     }
 
-    for(int i=0; i < length+prefix_length; i++)
+    for(size_t i=0; i < length+prefix_length; i++)
     {
         info.output(info.op, info.chars_printed, info.size,
                 number_string[i]);
@@ -175,7 +175,7 @@ void process_int_argument(uintmax_t arg, PrintfInfo info)
 
     if(info.flags & FLAG_LEFT_ADJUSTMENT)
     {
-        for(int i=info.field_width; i > length+prefix_length; i--)
+        for(size_t i=info.field_width; i > length+prefix_length; i--)
         {
             info.output(info.op, info.chars_printed, info.size,
                     padding_character);
@@ -232,9 +232,9 @@ void process_pointer_argument(void *ptr, PrintfInfo info)
 }
 
 int printf_common(Output op, const char *format, va_list args,
-        void (*output)(Output, int*, size_t, char), size_t size)
+        void (*output)(Output, size_t *, size_t, char), size_t size)
 {
-    int chars_printed = 0;
+    size_t chars_printed = 0;
 
     PrintfInfo info;
     info.size = size;

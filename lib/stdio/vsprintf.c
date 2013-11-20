@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <printf_common.h>
 
-void sprintf_output(Output op, int *chars_printed, size_t size, char character)
+void sprintf_output(Output op, size_t *chars_printed, size_t size, char character)
 {
     op.buffer[(*chars_printed)++] = character;
 }

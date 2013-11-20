@@ -12,6 +12,9 @@ char *strcat(char *, const char *);
 char *strncat(char *, const char *, size_t);
 char *strdup(const char *);
 char *strndup(const char *, size_t);
+int strcmp(const char *, const char *);
+int strncmp(const char *, const char *, size_t);
+char *strtok(char *, const char *);
 
 #endif
 

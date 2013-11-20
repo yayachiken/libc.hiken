@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <printf_common.h>
 
-void vfprintf_output(Output op, int *chars_printed, size_t size, char character)
+void vfprintf_output(Output op, size_t *chars_printed, size_t size, char character)
 {
     write(op.file->handle, &character, 1);
     return;
