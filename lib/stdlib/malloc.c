@@ -10,6 +10,71 @@
 // domain malloc (dlmalloc) as explained at
 // <http://gee.cs.oswego.edu/dl/html/malloc.html>
 
+
+// Helper functions
+int find_bin_for_chunk(MallocBin *bins, ChunkInfo *chunk)
+{
+    for(int designated_bin=1; designated_bin<=127; designated_bin++)
+    {
+        // The right bin is the largest bin which has a minimum size below
+        // the allocated size.
+        if(designated_bin == 127 || (bins[designated_bin].size <= chunk->size &&
+           bins[designated_bin+1].size > chunk->size))
+        {
+            return designated_bin;
+        }
+    }
+
+    assert(0);
+    return -1;
+}
+
+void insert_chunk_into_bin(ChunkInfo *chunk, MallocBin *bins, 
+        int designated_bin)
+{
+    // Please insert the new chunk.
+    ChunkInfo *curr = bins[designated_bin].next;
+
+    // Bin is still empty
+    if(curr == NULL)
+    {
+        bins[designated_bin].next = chunk;
+        chunk->prev = NULL;
+        chunk->next = NULL;
+    }
+    else
+    {
+        for(; curr; curr = curr->next)
+        {
+            // To insert, we must either have reached the end or found the place
+            // where the chunk belongs.
+            if(curr->next && (curr->size <= chunk->size 
+                        && curr->next->size >= chunk->size))
+            {
+                chunk->prev = curr;
+                chunk->next = curr->next;
+                curr->next->prev = chunk;
+                curr->next = chunk;
+                break;
+            }
+            // This special case can only happen if we are still at the start
+            // of the bin.
+            if(curr->size > chunk->size)
+            {
+                assert(curr->prev == NULL);
+
+                chunk->prev = NULL;
+                chunk->next = curr;
+                curr->prev = chunk;
+                break;
+            }
+        }
+    }
+    
+}
+
+
+// The actual malloc
 void *malloc(size_t size)
 {
     // These bins hold the memory chunks our malloc may use.
@@ -32,7 +97,7 @@ void *malloc(size_t size)
             bins[i].size = 8*i;
         }
 
-        // The upper bins are supposed to grow exponentially.
+            // The upper bins are supposed to grow exponentially.
         // This algorithm comes out at about 2^31-1, give or take an order
         // of magnitude :p
         for(int i=65, exp=64; i<= 127; i++)
@@ -257,58 +322,15 @@ void *malloc(size_t size)
         designated_chunk->next->prev = designated_chunk->prev;
     }
 
+    int new_chunk_bin;
     // Sort the new chunk into an appropriate bin.
-    int designated_bin;
-    for(designated_bin=1; designated_bin<=127; designated_bin++)
-    {
-        // The right bin is the largest bin which has a minimum size below
-        // the allocated size.
-        if(bins[designated_bin].size <= new_chunk->size &&
-           bins[designated_bin+1].size > new_chunk->size)
-        {
-            break;
-        }
-    }
+    new_chunk_bin = find_bin_for_chunk(bins, new_chunk);
+    insert_chunk_into_bin(new_chunk, bins, new_chunk_bin);
 
-    // Now that we found the bin, please insert the new chunk.
-    ChunkInfo *curr = bins[designated_bin].next;
-
-    // Bin is still empty
-    if(curr == NULL)
-    {
-        bins[designated_bin].next = new_chunk;
-        new_chunk->prev = NULL;
-        new_chunk->next = NULL;
-    }
-    else
-    {
-        for(; curr; curr = curr->next)
-        {
-            // To insert, we must either have reached the end or found the place
-            // where the chunk belongs.
-            if(curr->next && (curr->size <= new_chunk->size 
-                        && curr->next->size >= new_chunk->size))
-            {
-                new_chunk->prev = curr;
-                new_chunk->next = curr->next;
-                curr->next->prev = designated_chunk;
-                curr->next = designated_chunk;
-                break;
-            }
-            // This special case can only happen if we are still at the start
-            // of the bin.
-            if(curr->size > new_chunk->size)
-            {
-                assert(curr->prev == NULL);
-
-                new_chunk->prev = NULL;
-                new_chunk->next = curr;
-                curr->prev = new_chunk;
-                break;
-            }
-        }
-    }
-
+    // In addition put designated chunk in new bin
+    new_chunk_bin = find_bin_for_chunk(bins, designated_chunk);
+    insert_chunk_into_bin(designated_chunk, bins, new_chunk_bin);
+    
     // All organization has happened now, we can gladly return the
     // designated chunk payload to the caller.
     return (void*)((uintptr_t)designated_chunk + 2 * sizeof(size_t));
