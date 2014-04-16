@@ -12,4 +12,4 @@ char *strcpy(char *restrict dest, const char *restrict src)
 
     return dest;
 }
-// 
+

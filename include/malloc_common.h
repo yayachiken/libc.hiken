@@ -1,5 +1,5 @@
 #ifndef LIBCHIKEN_MALLOC_COMMON_H
-#define LIBCHIKEN_MALLOC_COMMON_h
+#define LIBCHIKEN_MALLOC_COMMON_H
 
 #include <stddef.h>
 

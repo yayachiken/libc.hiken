@@ -186,7 +186,7 @@ void process_int_argument(uintmax_t arg, PrintfInfo info)
 
 void process_char_argument(unsigned char arg, PrintfInfo info)
 {
-    if(info.lm != 'l')
+    if(info.lm != LENGTH_LONG)
     {
        info.output(info.op, info.chars_printed, info.size, arg); 
     }
@@ -198,7 +198,7 @@ void process_char_argument(unsigned char arg, PrintfInfo info)
 
 void process_string_argument(char *str, PrintfInfo info)
 {
-    if(info.lm != 'l')
+    if(info.lm != LENGTH_LONG)
     {
         // "Normal" right adjustment not implemented yet
         for(int i=0;
